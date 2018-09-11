@@ -25,7 +25,7 @@ type body struct {
 }
 
 const (
-	movSpeed = 3
+	movSpeed = 4
 	down     = "down"
 	left     = "left"
 	right    = "right"
@@ -47,7 +47,7 @@ func (b *body) update() {
 	if b.dir == down {
 		b.yPos = b.yPos + movSpeed
 		b.yMove = b.yMove + movSpeed
-		if b.yMove > 64 {
+		if b.yMove == 64 {
 			b.yMove = 0
 			if b.xPos > 100 {
 				b.dir = left
