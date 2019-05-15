@@ -52,44 +52,7 @@ func update(screen *ebiten.Image) error {
 }
 
 func main() {
-	gameMap, err := tiled.LoadFromFile("./area_1.tmx")
-
-	if err != nil {
-		panic(err)
-	}
-
-	mapRenderer, err := render.NewRenderer(gameMap)
-
-	if err != nil {
-		panic(err)
-	}
-
-	err = mapRenderer.RenderVisibleLayers()
-
-	if err != nil {
-		panic(err)
-	}
-
-	img, err := os.Create("area_1.png")
-
-	if err != nil {
-		panic(err)
-	}
-
-	mapRenderer.SaveAsPng(img)
-
-	if err != nil {
-		panic(err)
-	}
-
-	imFile, _ := os.Open("area_1.png")
-	im, err := png.Decode(imFile)
-
-	if err != nil {
-		panic(err)
-	}
-
-	mapImage, _ = ebiten.NewImageFromImage(im, ebiten.FilterDefault)
+	loadMap()
 
 	ebiten.Run(update, gameWidth, gameHeight, gameScale, "Kewl game")
 }
@@ -133,6 +96,8 @@ func loadMap() {
 
 	imFile, _ := os.Open("area_1.png")
 	im, err := png.Decode(imFile)
+	imFile.Close()
+	os.Remove("area_1.png")
 
 	if err != nil {
 		panic(err)
