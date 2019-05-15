@@ -4,89 +4,47 @@ import (
 	"image/png"
 	"math"
 	"os"
-	"path"
 
 	"github.com/hajimehoshi/ebiten"
+	"github.com/lafriks/go-tiled"
+	"github.com/lafriks/go-tiled/render"
 )
 
 const (
-	gameHeight = 800
-	gameWidth  = 800
+	numImages  = 200
+	gameWidth  = 600
+	gameHeight = 600
+	gameScale  = 1
 )
-
-type body struct {
-	xPos     float64
-	yPos     float64
-	active   bool
-	rotation int
-	dir      string
-	yMove    int
-	face     bool
-}
-
-const (
-	movSpeed = 4
-	down     = "down"
-	left     = "left"
-	right    = "right"
-)
-
-func (b *body) update() {
-	if b.dir == right {
-		b.xPos = b.xPos + movSpeed
-		if b.xPos > gameWidth-64 {
-			b.dir = down
-		}
-	}
-	if b.dir == left {
-		b.xPos = b.xPos - movSpeed
-		if b.xPos < 1 {
-			b.dir = down
-		}
-	}
-	if b.dir == down {
-		b.yPos = b.yPos + movSpeed
-		b.yMove = b.yMove + movSpeed
-		if b.yMove == 64 {
-			b.yMove = 0
-			if b.xPos > 100 {
-				b.dir = left
-			} else {
-				b.dir = right
-			}
-		}
-	}
-}
-
-type centipede struct {
-	sections [9]*body
-}
-
-var pede *centipede
 
 var op = &ebiten.DrawImageOptions{}
 
-var faceImg *ebiten.Image
-var bodyImg *ebiten.Image
+type imageEntity struct {
+	xPos     float64
+	yPos     float64
+	rotation float64
+	image    *ebiten.Image
+}
 
-var x float64
-var y float64
-var rot int
+var imageEntities [numImages]*imageEntity
+var mapImage *ebiten.Image
 
 func update(screen *ebiten.Image) error {
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
 
-	for i := 0; i < len(pede.sections); i++ {
-		s := pede.sections[i]
-		op.GeoM.Reset()
-		s.update()
-		op.GeoM.Translate(s.xPos, s.yPos)
-		if s.face == true {
-			screen.DrawImage(faceImg, op)
-		} else {
-			screen.DrawImage(faceImg, op)
+	op.GeoM.Reset()
+	op.GeoM.Translate(0, 0)
+	screen.DrawImage(mapImage, op)
+
+	for i := 0; i < numImages; i++ {
+		ie := imageEntities[i]
+
+		if ie != nil && ie.image != nil {
+			op.GeoM.Reset()
+			op.GeoM.Translate(ie.xPos, ie.yPos)
+			screen.DrawImage(ie.image, op)
 		}
 	}
 
@@ -94,47 +52,95 @@ func update(screen *ebiten.Image) error {
 }
 
 func main() {
+	gameMap, err := tiled.LoadFromFile("./area_1.tmx")
 
-	loadSpacey()
+	if err != nil {
+		panic(err)
+	}
 
-	loadPede()
+	mapRenderer, err := render.NewRenderer(gameMap)
 
-	ebiten.Run(update, gameWidth, gameHeight, 1, "Ebiten Starter")
+	if err != nil {
+		panic(err)
+	}
+
+	err = mapRenderer.RenderVisibleLayers()
+
+	if err != nil {
+		panic(err)
+	}
+
+	img, err := os.Create("area_1.png")
+
+	if err != nil {
+		panic(err)
+	}
+
+	mapRenderer.SaveAsPng(img)
+
+	if err != nil {
+		panic(err)
+	}
+
+	imFile, _ := os.Open("area_1.png")
+	im, err := png.Decode(imFile)
+
+	if err != nil {
+		panic(err)
+	}
+
+	mapImage, _ = ebiten.NewImageFromImage(im, ebiten.FilterDefault)
+
+	ebiten.Run(update, gameWidth, gameHeight, gameScale, "Kewl game")
 }
 
-func loadPede() {
-	pede = new(centipede)
-	for i := 0; i < len(pede.sections); i++ {
-		pede.sections[i] = &body{
-			xPos:     float64(0 + (-64 * i)),
-			yPos:     0,
-			rotation: 0,
-			dir:      "right",
-			face:     i == 0,
-		}
+func loadMap() {
+	// load up the map as a tiled object
+	gameMap, err := tiled.LoadFromFile("./area_1.tmx")
+
+	if err != nil {
+		panic(err)
 	}
+
+	// create a renderer
+	mapRenderer, err := render.NewRenderer(gameMap)
+
+	if err != nil {
+		panic(err)
+	}
+
+	// render it to an in memory image
+	err = mapRenderer.RenderVisibleLayers()
+
+	if err != nil {
+		panic(err)
+	}
+
+	// create a tmp file to write to then read from later
+	img, err := os.Create("area_1.png")
+
+	if err != nil {
+		panic(err)
+	}
+
+	// save to the tmp file
+	mapRenderer.SaveAsPng(img)
+	img.Close()
+
+	if err != nil {
+		panic(err)
+	}
+
+	imFile, _ := os.Open("area_1.png")
+	im, err := png.Decode(imFile)
+
+	if err != nil {
+		panic(err)
+	}
+
+	mapImage, _ = ebiten.NewImageFromImage(im, ebiten.FilterDefault)
 }
 
 func toRads(deg int) float64 {
 	return math.Pi / 180 * float64(deg)
-}
-
-func loadBody() {
-	wd, _ := os.Getwd()
-	f, _ := os.Open(path.Join(wd, "./assets/body.png"))
-	i, _ := png.Decode(f)
-
-	bi, _ := ebiten.NewImageFromImage(i, ebiten.FilterDefault)
-
-	bodyImg = bi
-}
-
-func loadSpacey() {
-	wd, _ := os.Getwd()
-	f, _ := os.Open(path.Join(wd, "./assets/space_face.png"))
-	i, _ := png.Decode(f)
-
-	fi, _ := ebiten.NewImageFromImage(i, ebiten.FilterDefault)
-
-	faceImg = fi
 }
