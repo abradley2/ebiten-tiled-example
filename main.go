@@ -1,9 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"image/png"
 	"math"
-	"os"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/lafriks/go-tiled"
@@ -79,29 +79,12 @@ func loadMap() {
 		panic(err)
 	}
 
-	// create a tmp file to write to then read from later
-	img, err := os.Create("area_1.png")
+	var buff []byte
+	buffer := bytes.NewBuffer(buff)
 
-	if err != nil {
-		panic(err)
-	}
+	mapRenderer.SaveAsPng(buffer)
 
-	// save to the tmp file
-	mapRenderer.SaveAsPng(img)
-	img.Close()
-
-	if err != nil {
-		panic(err)
-	}
-
-	imFile, _ := os.Open("area_1.png")
-	im, err := png.Decode(imFile)
-	imFile.Close()
-	os.Remove("area_1.png")
-
-	if err != nil {
-		panic(err)
-	}
+	im, err := png.Decode(buffer)
 
 	mapImage, _ = ebiten.NewImageFromImage(im, ebiten.FilterDefault)
 }
