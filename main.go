@@ -12,8 +12,8 @@ import (
 
 const (
 	numImages  = 200
-	gameWidth  = 600
-	gameHeight = 600
+	gameWidth  = 512
+	gameHeight = 512
 	gameScale  = 1
 )
 
